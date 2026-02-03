@@ -22,52 +22,65 @@ async def crole(ctx):
 async def create(ctx, name: str):
     author = ctx.author
     guild = ctx.guild
-
     existing_role = discord.utils.get(guild.roles, name=name)
+    
     if existing_role is not None:
-        embed = discord.Embed(
-        title="Role Creation",
-        color=FAILED,
-        description=f"'{existing_role}' already exists",
-        )
+        embed = await passembed(0, "Role Creation", f"{existing_role.mention} already exists.")
         embed.set_footer(text="~crole create")
-
         return await ctx.send(embed=embed)
-        
     try:
         new_role = await ctx.guild.create_role(
             name=name, 
-            mentionable=True # Allow the role to be mentioned
+            mentionable=True
         )
-        embed = discord.Embed(
-        title="Role Creation",
-        color=PASSED,
-        description=f"'{new_role.name}' created successfully!",
-        )
+        embed = await passembed(1, "Role Creation", f"{new_role.mention} created successfully.")
         await author.add_roles(new_role)
 
     except discord.Forbidden:
-        embed = discord.Embed(
-        title="Role Creation",
-        color=FAILED,
-        description="Failed! Permission Denied.",
-        )
+        embed = await passembed(0, "Role Creation", "Error: Permission Denied.")
     except Exception as e:
-        embed = discord.Embed(
-        title="Role Creation",
-        color=FAILED,
-        description=f"Failed! {e}",
-        )
+        embed = await passembed(0, "Role Creation", f"Error: {e}")
     embed.set_footer(text="~crole create")
     await ctx.send(embed=embed) 
+
 @crole.command()
-async def color(ctx):
+async def color(ctx, rolename: str, colorhex):
     guild = ctx.guild
 
-    existing_role = discord.utils.get(guild.roles, name="yes")
-    if existing_role is not None:
-        pass
-    print("test")
+    if rolename.startswith('<@&') and rolename.endswith('>'):
+        role = guild.get_role(int(rolename[3:-1]))
+    else:
+        role = discord.utils.get(guild.roles, name=rolename)
+    if role is not None:
+        try:
+            color_int = int(colorhex, 16) 
+            await role.edit(color=color_int)
+            embed = await passembed(1,"Role Color", f"Role {role.mention} updated.")
+        except ValueError:
+            embed = await passembed(0, "Role Color", "Invalid Hex.")
+        except discord.Forbidden:
+            embed = await passembed(0, "Role Color", "Error: Permission Denied.")
+        except Exception as e:
+            embed = await passembed(0, "Role Color", f"Error: {e}")
+    else: 
+        embed = await passembed(0, "Role Color", f"Error: '{rolename}' does not exist.")
+    embed.set_footer(text="~crole color")
+    await ctx.send(embed=embed) 
+
+async def passembed(embedType: bool, title: str, desc: str):
+    if embedType == 1:
+        embed = discord.Embed(
+        title=title,
+        description=desc,
+        color = PASSED
+        )
+    else:
+        embed = discord.Embed(
+        title=title,
+        description=desc,
+        color = FAILED
+        )
+    return embed
 
 
 REACTION_ROLES = {
@@ -91,7 +104,6 @@ async def rr(ctx):
     )
     msg = await ctx.send(embed=embed)
 
-    # Add reactions so users can click them
     for emoji in REACTION_ROLES.keys():
         await msg.add_reaction(emoji)
 
@@ -120,9 +132,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     try:
         await member.add_roles(role, reason="Reaction role add")
     except discord.Forbidden:
-        # bot missing permissions or role hierarchy issue
         pass
-
 
 @bot.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
