@@ -1,12 +1,11 @@
 import os
-from aiohttp.tracing import TraceRequestEndParams
 import aiomysql
 
 pool: aiomysql.Pool | None = None
 
 async def init_pool():
     global pool
-    pool = await aimysql.create_pool(
+    pool = await aiomysql.create_pool(
         host = os.getenv('DB_HOST', '127.0.0.1'),
         user = os.getenv('DB_USER'),
         password = os.getenv('DB_PASSWORD'),
@@ -41,7 +40,7 @@ async def dbGetRole(guild_id: int, user_id: int):
                 (guild_id, user_id),
             )
             row = await cur.fetchone()
-            return row[0] if row else None;
+            return row[0] if row else None
 
 async def dbDeleteRole(guild_id: int, user_id: int):
     if pool is None:

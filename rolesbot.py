@@ -1,5 +1,3 @@
-from xxlimited import new
-
 import discord
 from discord.ext import commands
 import random
@@ -24,12 +22,22 @@ FAILED = 0xba0009
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
-bot = commands.Bot(command_prefix='~', intents=intents)
+
+class RoleBot(commands.Bot):
+    async def setup_hook(self):
+        await botdb.init_pool()
+
+    async def close(self):
+        await botdb.close_pool()
+        await super().close()
+
+bot = RoleBot(command_prefix='~', intents=intents)
 
 @bot.group(invoke_without_command=True)
 async def crole(ctx):
     await ctx.send('hello')
 @crole.command()
+@commands.guild_only()
 async def create(ctx, *, name: str):
     guild = ctx.guild
     author = ctx.author
@@ -74,13 +82,23 @@ async def create(ctx, *, name: str):
     await ctx.send(embed=embed)
 
 @crole.command()
+@commands.guild_only()
 async def color(ctx, colorhex: str):
     guild = ctx.guild
     author = ctx.author
-    role = await botdb.dbGetRole(guild.id, author.id)
-    if role is not None:
-        colorhex = colorhex.strip().removeprefix('#')
+
+    role = None
+    role_id = await botdb.dbGetRole(guild.id, author.id)
+    if role_id is not None:
+        role = guild.get_role(role_id)
+        if role is None:
+            await botdb.dbDeleteRole(guild.id, author.id)
+
+    if role is None:
+        embed = await passembed(False, "Role Color", "Create a role with ~crole create")
+    else:
         try:
+            colorhex = colorhex.strip().removeprefix('#')
             if len(colorhex) != 6:
                 raise ValueError("Hex color must be 6 characters")
             color_int = int(colorhex, 16)
@@ -92,30 +110,13 @@ async def color(ctx, colorhex: str):
             embed = await passembed(False, "Role Color", "Invalid Hex Color.")
         except discord.Forbidden:
             embed = await passembed(False, "Role Color", "Error: Permission Denied.")
-        except Exception as e:
-            embed = await passembed(False, "Role Color", f"Error: {e}")
-    else:
-        embed = await passembed(False, "Role Color", "Create a role with ~crole create first")
+        except Exception:
+            logging.exception("crole color failure")
+            embed = await passembed(False, "Role Color", "Something broke.")
+
     embed.set_footer(text="~crole color")
     await ctx.send(embed=embed)
 
-
-    role = await botdb.dbGetRole(guild, author)
-    if role is not None:
-        try:
-            color_int = int(colorhex, 16)
-            await role.edit(color=color_int)
-            embed = await passembed(True,"Role Color", f"Role {role.mention} updated.")
-        except ValueError:
-            embed = await passembed(False, "Role Color", "Invalid Hex.")
-        except discord.Forbidden:
-            embed = await passembed(False, "Role Color", "Error: Permission Denied.")
-        except Exception as e:
-            embed = await passembed(False, "Role Color", f"Error: {e}")
-    else:
-        embed = await passembed(0, "Role Color", f"Error: '{rolename}' does not exist.")
-    embed.set_footer(text="~crole color")
-    await ctx.send(embed=embed)
 
 async def passembed(embedType: bool, title: str, desc: str):
     if embedType == True:
