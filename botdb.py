@@ -36,7 +36,7 @@ async def dbGetRole(guild_id: int, user_id: int):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
-                "SELECT role_id FROM custom_role WHERE guild_id = %s AND user_id = %s",
+                "SELECT role_id FROM custom_roles WHERE guild_id = %s AND user_id = %s",
                 (guild_id, user_id),
             )
             row = await cur.fetchone()
