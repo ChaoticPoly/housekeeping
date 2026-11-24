@@ -47,21 +47,21 @@ async def create(ctx, *, name: str):
         embed.set_footer(text='~crole create')
         return await ctx.send(embed=embed)
 
-    existing_id = await botdb.dbGetRole(guild.id, author.id)
+    existing_id = await botdb.crGetRole(guild.id, author.id)
     if existing_id is not None:
         role = guild.get_role(existing_id)
         if role is not None:
             embed = await passembed(False, "Role Creation", f"You already have {role.mention}")
             embed.set_footer(text='~crole create')
             return await ctx.send(embed=embed)
-        await botdb.dbDeleteRole(guild.id, author.id)
+        await botdb.crDeleteRole(guild.id, author.id)
 
     new_role = None
     saved = False
     try:
         new_role = await guild.create_role(name=name, mentionable = True)
         await author.add_roles(new_role)
-        await botdb.dbSaveRole(guild.id, author.id, new_role.id)
+        await botdb.crSaveRole(guild.id, author.id, new_role.id)
         saved = True
         embed = await passembed(True, "Role Creation", f"{new_role.mention} created successfully.")
     except discord.Forbidden:
@@ -88,11 +88,11 @@ async def color(ctx, colorhex: str):
     author = ctx.author
 
     role = None
-    role_id = await botdb.dbGetRole(guild.id, author.id)
+    role_id = await botdb.crGetRole(guild.id, author.id)
     if role_id is not None:
         role = guild.get_role(role_id)
         if role is None:
-            await botdb.dbDeleteRole(guild.id, author.id)
+            await botdb.crDeleteRole(guild.id, author.id)
 
     if role is None:
         embed = await passembed(False, "Role Color", "Create a role with ~crole create")
@@ -134,29 +134,25 @@ async def passembed(embedType: bool, title: str, desc: str):
     return embed
 
 
-REACTION_ROLES = {
-    "<:utd:1467987437996347402>": 1467988190970253334,
-    "<:tt:1467988022342713464>": 1467988265310093397,
-}
-@bot.command()
+
+@bot.group(invoke_without_command=True)
 @commands.has_permissions(manage_roles=True)
-async def rr(ctx):
-    desc_lines = []
-    for emoji, role_id in REACTION_ROLES.items():
-        role = ctx.guild.get_role(role_id)
-        if role:
-            desc_lines.append(f"{emoji} → {role.mention}")
-    description = "\n".join(desc_lines) or "No roles configured."
+async def rrole(ctx):
+    await ctx.send("hi")
 
-    embed = discord.Embed(
-        title="Reaction Roles",
-        description=description,
-        color=COLOR
-    )
-    msg = await ctx.send(embed=embed)
+@rrole.command()
+@commands.guild_only()
+async def create(ctx, *, name: str):
+    author = ctx.author
+    guild = ctx.guild
 
-    for emoji in REACTION_ROLES.keys():
-        await msg.add_reaction(emoji)
+    if len(name) > 256:
+        embed = await passembed(False, "Reaction Role Creation", "Embed titles can be at most 256 characters.")
+        embed.set_footer(text="~rrole create")
+        return await ctx.send(embed=embed)
+    desc = "Copy the message link and use ~rrole add to edit this panel"
+    embed = discord.Embed(title=name, description=desc)
+    await ctx.send(embed=embed)
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):

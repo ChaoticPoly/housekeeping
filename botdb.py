@@ -20,7 +20,9 @@ async def close_pool():
         pool.close()
         await pool.wait_closed()
 
-async def dbSaveRole(guild_id: int, user_id: int, role_id: int):
+#custom role stuff
+
+async def crSaveRole(guild_id: int, user_id: int, role_id: int):
     if pool is None:
         raise RuntimeError("Database pool not initialized")
     async with pool.acquire() as conn:
@@ -30,7 +32,7 @@ async def dbSaveRole(guild_id: int, user_id: int, role_id: int):
                 (guild_id, user_id, role_id),
             )
 
-async def dbGetRole(guild_id: int, user_id: int):
+async def crGetRole(guild_id: int, user_id: int):
     if pool is None:
         raise RuntimeError("Database pool not initialized")
     async with pool.acquire() as conn:
@@ -42,7 +44,7 @@ async def dbGetRole(guild_id: int, user_id: int):
             row = await cur.fetchone()
             return row[0] if row else None
 
-async def dbDeleteRole(guild_id: int, user_id: int):
+async def crDeleteRole(guild_id: int, user_id: int):
     if pool is None:
         raise RuntimeError("Database pool not initialized")
     async with pool.acquire() as conn:
@@ -51,3 +53,25 @@ async def dbDeleteRole(guild_id: int, user_id: int):
                 "DELETE FROM custom_roles WHERE guild_id = %s AND user_id = %s",
                 (guild_id, user_id),
             )
+
+#reaction roles stuff
+#
+async def rrSaveRole(guild_id: int, message_id: int, emoji_id: int, role_id: int):
+    if pool is None:
+        raise RuntimeError("Database pool not initialized")
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO reaction_roles (guild_id, message_id, emoji_id, role_id) VALUES (%s, %s, %s, %s)",
+                (guild_id, message_id, emoji_id, role_id),
+            )
+
+async def rrDeleteRole(message_id: int, emoji_id: int):
+    if pool is None:
+      raise RuntimeError("Database pool not initialized")
+    async with pool.acquire() as conn:
+       async with conn.cursor() as cur:
+          await cur.execeute(
+              "DELETE FROM reaction_roles WHERE message_id = %s AND emoji_id = %s",
+              (message_id, emoji_id),
+          )
