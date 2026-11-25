@@ -1,3 +1,5 @@
+from ast import alias
+
 import discord
 from discord.ext import commands
 import random
@@ -30,6 +32,13 @@ class RoleBot(commands.Bot):
     async def close(self):
         await botdb.close_pool()
         await super().close()
+
+class rrDraft():
+    def __init__(self, title:str):
+        self.title = title
+        self.pairs: dict[str, int] = {}
+
+drafts: dict[tuple[int, int], rrDraft] = {}
 
 bot = RoleBot(command_prefix='~', intents=intents)
 
@@ -135,24 +144,70 @@ async def passembed(embedType: bool, title: str, desc: str):
 
 
 
-@bot.group(invoke_without_command=True)
+@bot.group(aliases=['rr','reactionrole'],invoke_without_command=True)
 @commands.has_permissions(manage_roles=True)
 async def rrole(ctx):
     await ctx.send("hi")
 
-@rrole.command()
+@rrole.command(aliases=['draft'])
 @commands.guild_only()
 async def create(ctx, *, name: str):
     author = ctx.author
     guild = ctx.guild
 
     if len(name) > 256:
-        embed = await passembed(False, "Reaction Role Creation", "Embed titles can be at most 256 characters.")
+        embed = await passembed(False, "Reaction Role Create", "Embed titles can be at most 256 characters.")
         embed.set_footer(text="~rrole create")
         return await ctx.send(embed=embed)
-    desc = "Copy the message link and use ~rrole add to edit this panel"
-    embed = discord.Embed(title=name, description=desc)
+    key = (guild.id, author.id)
+
+    if key in drafts:
+        embed = await passembed(False,"Reaction Role Drafting","You already have a draft.\nPost or cancel it first.")
+        embed.set_footer(text="~rrole create")
+        return await ctx.send(embed)
+    drafts[key] = rrDraft(name)
+    embed = await passembed(True, "Reaction Role Drafting", f"Draft '{name}' started.")
+    embed.set_footer(text="~rrole create")
     await ctx.send(embed=embed)
+
+@rrole.command(aliases=['delete'])
+@commands.guild_only()
+async def cancel(ctx):
+    key = (ctx.guild.id, ctx.author.id)
+    removed = drafts.pop(key, None)
+    if removed is None:
+        embed = await passembed(False, "Reaction Role Drafting", "You do not have a draft.")
+        embed.set_footer(text="~rrole cancel")
+        return await ctx.send(embed=embed)
+    embed = await passembed(True, "Reaction Role Drafting", f"Draft '{removed.title}' cancelled.")
+    embed.set_footer(text="~rrole cancel")
+    await ctx.send(embed=embed)
+
+@rrole.command(aliases=['preview','check'])
+@commands.guild_only()
+async def view(ctx):
+    draft = drafts.get((ctx.guild.id,ctx.author.id))
+    if draft is None:
+        embed = await passembed(False, "Reaction Role Drafting", "You do not have a draft.")
+        embed.set_footer(text="~rrole cancel")
+        return await ctx.send(embed=embed)
+    embed = rrBuild(ctx.guild.id, draft.title, draft.pairs.items())
+    await ctx.send(embed=embed)
+
+def renderEmoji(key:str):
+    if key.isdigit():
+        found = bot.get_emoji(int(key))
+        return str(found) if found else f"<:_:{key}>"
+    return key
+
+def rrBuild(guild: discord.Guild, title: str, pairs) -> discord.Embed:
+    lines = []
+    for key, role_id in pairs:
+        role = guild.get_role(role_id)
+        if role is None:
+            continue
+        lines.append(f"{renderEmoji(key)} -> {role.mention})")
+    return discord.Embed(title=title, description="\n".join(lines) or "No roles configured.", color=COLOR,)
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
