@@ -1,4 +1,5 @@
 from ast import alias
+from operator import add
 
 import discord
 from discord.ext import commands
@@ -194,11 +195,31 @@ async def view(ctx):
     embed = rrBuild(ctx.guild.id, draft.title, draft.pairs.items())
     await ctx.send(embed=embed)
 
-def renderEmoji(key:str):
+
+@rrole.command()
+@commands.guild_only()
+async def add(ctx, emote: discord.PartialEmoji, role: discord.Role):
+    draft = drafts.get((ctx.guild.id, ctx.author.id))
+    if draft is None:
+        embed = await passembed(False,"Reaction Role Drafting", "You do not have a draft.")
+        embed.set_footer(text="~rrole add")
+        return await ctx.send(embed=embed)
+    if len(draft.pairs) >= 20 and emoteKey(emote) not in draft.pairs:
+        embed = await passembed(False,"Reaction Role Drafting", "A panel can only hold 20 reactions")
+        embed.set_footer(text="~rrol add")
+        return await ctx.send(embed=embed)
+    draft.pairs[emoteKey(emote)] = role.id
+
+def renderEmote(key:str):
     if key.isdigit():
         found = bot.get_emoji(int(key))
         return str(found) if found else f"<:_:{key}>"
     return key
+
+def emoteKey(emote: discord.PartialEmoji):
+    if emote.id is not None:
+        return str(emote.id)
+    return emote.name
 
 def rrBuild(guild: discord.Guild, title: str, pairs) -> discord.Embed:
     lines = []
@@ -206,58 +227,9 @@ def rrBuild(guild: discord.Guild, title: str, pairs) -> discord.Embed:
         role = guild.get_role(role_id)
         if role is None:
             continue
-        lines.append(f"{renderEmoji(key)} -> {role.mention})")
+        lines.append(f"{renderEmote(key)} -> {role.mention})")
     return discord.Embed(title=title, description="\n".join(lines) or "No roles configured.", color=COLOR,)
 
-@bot.event
-async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    if payload.user_id == bot.user.id:
-        return
 
-    guild = bot.get_guild(payload.guild_id)
-    if guild is None:
-        return
-
-    emoji = str(payload.emoji)
-    if emoji not in REACTION_ROLES:
-        return
-
-    role_id = REACTION_ROLES[emoji]
-    role = guild.get_role(role_id)
-    if role is None:
-        return
-
-    member = guild.get_member(payload.user_id)
-    if member is None:
-        member = await guild.fetch_member(payload.user_id)
-
-    try:
-        await member.add_roles(role, reason="Reaction role add")
-    except discord.Forbidden:
-        pass
-
-@bot.event
-async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
-    guild = bot.get_guild(payload.guild_id)
-    if guild is None:
-        return
-
-    emoji = str(payload.emoji)
-    if emoji not in REACTION_ROLES:
-        return
-
-    role_id = REACTION_ROLES[emoji]
-    role = guild.get_role(role_id)
-    if role is None:
-        return
-
-    member = guild.get_member(payload.user_id)
-    if member is None:
-        member = await guild.fetch_member(payload.user_id)
-
-    try:
-        await member.remove_roles(role, reason="Reaction role remove")
-    except discord.Forbidden:
-        pass
 
 bot.run(TOKEN)
