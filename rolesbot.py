@@ -192,7 +192,7 @@ async def view(ctx):
         embed = await passembed(False, "Reaction Role Drafting", "You do not have a draft.")
         embed.set_footer(text="~rrole cancel")
         return await ctx.send(embed=embed)
-    embed = rrBuild(ctx.guild.id, draft.title, draft.pairs.items())
+    embed = rrBuild(ctx.guild, draft.title, draft.pairs.items())
     await ctx.send(embed=embed)
 
 
