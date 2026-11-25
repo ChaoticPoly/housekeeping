@@ -209,6 +209,9 @@ async def add(ctx, emote: discord.PartialEmoji, role: discord.Role):
         embed.set_footer(text="~rrol add")
         return await ctx.send(embed=embed)
     draft.pairs[emoteKey(emote)] = role.id
+    embed = discord.Embed(title = "Reaction Role Drafting",description=f"Added {emote} as {role.mention} to '{draft.title}")
+    embed.set_footer(text="~rrole add")
+    await ctx.send(embed=embed)
 
 def renderEmote(key:str):
     if key.isdigit():
@@ -227,7 +230,7 @@ def rrBuild(guild: discord.Guild, title: str, pairs) -> discord.Embed:
         role = guild.get_role(role_id)
         if role is None:
             continue
-        lines.append(f"{renderEmote(key)} -> {role.mention})")
+        lines.append(f"{renderEmote(key)}: {role.mention}")
     return discord.Embed(title=title, description="\n".join(lines) or "No roles configured.", color=COLOR,)
 
 
