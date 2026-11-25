@@ -42,7 +42,7 @@ drafts: dict[tuple[int, int], rrDraft] = {}
 
 bot = RoleBot(command_prefix='~', intents=intents)
 
-@bot.group(invoke_without_command=True)
+@bot.group(aliases=['cr','customrole'],invoke_without_command=True)
 async def crole(ctx):
     await ctx.send('hello')
 @crole.command()
@@ -164,7 +164,7 @@ async def create(ctx, *, name: str):
     if key in drafts:
         embed = await passembed(False,"Reaction Role Drafting","You already have a draft.\nPost or cancel it first.")
         embed.set_footer(text="~rrole create")
-        return await ctx.send(embed)
+        return await ctx.send(embed=embed)
     drafts[key] = rrDraft(name)
     embed = await passembed(True, "Reaction Role Drafting", f"Draft '{name}' started.")
     embed.set_footer(text="~rrole create")
