@@ -88,3 +88,6 @@ class CustomRoles(commands.Cog):
 
         embed.set_footer(text="~crole color")
         await ctx.send(embed=embed)
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(CustomRoles(bot))

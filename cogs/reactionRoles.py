@@ -102,3 +102,6 @@ class ReactionRoles(commands.Cog):
         embed = await passembed(True, "Reaction Role Drafting", f"Added {emote} as {role.mention} to '{draft.title}")
         embed.set_footer(text="~rrole add")
         await ctx.send(embed=embed)
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(ReactionRoles(bot))
