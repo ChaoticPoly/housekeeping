@@ -17,29 +17,26 @@ class CustomRoles(commands.Cog):
     @crole.command()
     @commands.guild_only()
     async def create(self, ctx, *, name: str):
-        guild = ctx.guild
-        author = ctx.author
-
         if len(name) > 100:
             embed = await passembed(False, "Role Creation", "Role names can be at most 100 characters.")
             embed.set_footer(text='~crole create')
             return await ctx.send(embed=embed)
 
-        existing_id = await botdb.crGetRole(guild.id, author.id)
+        existing_id = await botdb.crGetRole(ctx.guild.id, ctx.author.id)
         if existing_id is not None:
-            role = guild.get_role(existing_id)
+            role = ctx.guild.get_role(existing_id)
             if role is not None:
                 embed = await passembed(False, "Role Creation", f"You already have {role.mention}")
                 embed.set_footer(text='~crole create')
                 return await ctx.send(embed=embed)
-            await botdb.crDeleteRole(guild.id, author.id)
+            await botdb.crDeleteRole(ctx.guild.id, ctx.author.id)
 
         new_role = None
         saved = False
         try:
-            new_role = await guild.create_role(name=name, mentionable = True)
-            await author.add_roles(new_role)
-            await botdb.crSaveRole(guild.id, author.id, new_role.id)
+            new_role = await ctx.guild.create_role(name=name, mentionable = True)
+            await ctx.author.add_roles(new_role)
+            await botdb.crSaveRole(ctx.guild.id, ctx.author.id, new_role.id)
             saved = True
             embed = await passembed(True, "Role Creation", f"{new_role.mention} created successfully.")
         except discord.Forbidden:
@@ -62,15 +59,12 @@ class CustomRoles(commands.Cog):
     @crole.command()
     @commands.guild_only()
     async def color(self, ctx, colorhex: str):
-        guild = ctx.guild
-        author = ctx.author
-
         role = None
-        role_id = await botdb.crGetRole(guild.id, author.id)
+        role_id = await botdb.crGetRole(ctx.guild.id, ctx.author.id)
         if role_id is not None:
-            role = guild.get_role(role_id)
+            role = ctx.guild.get_role(role_id)
             if role is None:
-                await botdb.crDeleteRole(guild.id, author.id)
+                await botdb.crDeleteRole(ctx.guild.id, ctx.author.id)
 
         if role is None:
             embed = await passembed(False, "Role Color", "Create a role with ~crole create")

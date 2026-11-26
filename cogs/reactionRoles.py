@@ -46,14 +46,11 @@ class ReactionRoles(commands.Cog):
     @rrole.command(aliases=['draft'])
     @commands.guild_only()
     async def create(self, ctx, *, name: str):
-        author = ctx.author
-        guild = ctx.guild
-
         if len(name) > 256:
             embed = await passembed(False, "Reaction Role Create", "Embed titles can be at most 256 characters.")
             embed.set_footer(text="~rrole create")
             return await ctx.send(embed=embed)
-        key = (guild.id, author.id)
+        key = (ctx.guild.id, ctx.author.id)
 
         if key in self.drafts:
             embed = await passembed(False,"Reaction Role Drafting","You already have a draft.\nPost or cancel it first.")
