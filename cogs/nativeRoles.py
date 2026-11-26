@@ -23,7 +23,7 @@ class NativeRoles(commands.Cog):
             return await ctx.send(embed=embed)
         newRole = None
         try:
-            newRole = await ctx.guild.creat_role(name=name)
+            newRole = await ctx.guild.create_role(name=name)
             embed = await passembed(True, "Role Creation", f"{newRole.mention} created.")
         except discord.Forbidden:
             embed = await passembed(False, "Role Creation", "Permission Denied.")
